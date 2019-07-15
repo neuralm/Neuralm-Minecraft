@@ -1,0 +1,11 @@
+modLoader="javafml"
+loaderVersion="[27,)" #(27 is 1.14.3)
+
+[[mods]]
+modId="neuralm"
+version="${file.jarVersion}"
+displayName="Neuralm Minecraft"
+authors="suppergerrie2 and Glovali"
+description='''
+This mod adds the neuralm system to minecraft
+'''
