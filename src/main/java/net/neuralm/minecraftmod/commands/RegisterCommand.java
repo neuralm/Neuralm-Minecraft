@@ -4,6 +4,8 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.neuralm.client.messages.requests.RegisterRequest;
 import net.neuralm.client.messages.responses.Response;
@@ -30,7 +32,7 @@ public class RegisterCommand {
     private static int register(CommandContext<CommandSource> context) {
 
         if (Neuralm.instance.client == null) {
-            context.getSource().sendFeedback(new TranslationTextComponent("neuralm.not_connected"), true);
+            context.getSource().sendFeedback(new TranslationTextComponent("neuralm.not_connected").setStyle(new Style().setColor(TextFormatting.RED)), true);
             return -1;
         }
 
@@ -38,9 +40,9 @@ public class RegisterCommand {
             Response response = (Response) evt.getNewValue();
             context.getSource().getServer().runAsync(() -> {
                 if (response.isSuccess()) {
-                    context.getSource().sendFeedback(new TranslationTextComponent("neuralm.register.success"), true);
+                    context.getSource().sendFeedback(new TranslationTextComponent("neuralm.register.success").setStyle(new Style().setColor(TextFormatting.GREEN)), true);
                 } else {
-                    context.getSource().sendFeedback(new TranslationTextComponent("neuralm.register.failed", response.getMessage()), true);
+                    context.getSource().sendFeedback(new TranslationTextComponent("neuralm.register.failed", response.getMessage()).setStyle(new Style().setColor(TextFormatting.RED)), true);
                 }
             });
 
