@@ -18,8 +18,9 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.neuralm.client.NeuralmClient;
-import net.neuralm.client.messages.serializer.JsonSerializer;
+import net.neuralm.minecraftmod.commands.ConnectCommand;
 import net.neuralm.minecraftmod.commands.LoginCommand;
+import net.neuralm.minecraftmod.commands.RegisterCommand;
 import net.neuralm.minecraftmod.entities.BotEntity;
 import net.neuralm.minecraftmod.entities.renderer.BotEntityRenderer;
 import org.apache.logging.log4j.LogManager;
@@ -31,13 +32,12 @@ public class Neuralm {
     public static final String MODID = "neuralm";
 
     public static Neuralm instance;
-    public final NeuralmClient client;
+    public NeuralmClient client;
     private final Logger logger;
 
     public Neuralm() throws IOException {
         instance = this;
         logger = LogManager.getLogger();
-        client = new NeuralmClient("127.0.0.1", 9999, new JsonSerializer(), true, 5 * 1000);
 
         FMLJavaModLoadingContext.get().getModEventBus().addGenericListener(Item.class, this::registerItems);
         FMLJavaModLoadingContext.get().getModEventBus().addGenericListener(EntityType.class, this::registerEntityType);
@@ -92,6 +92,8 @@ public class Neuralm {
      */
     private void onServerStarting(final FMLServerStartingEvent e) {
         LoginCommand.register(e.getCommandDispatcher());
+        ConnectCommand.register(e.getCommandDispatcher());
+        RegisterCommand.register(e.getCommandDispatcher());
     }
 
 }

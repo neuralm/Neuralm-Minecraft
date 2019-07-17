@@ -7,14 +7,24 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
-import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.neuralm.client.messages.requests.AuthenticateRequest;
 import net.neuralm.client.messages.responses.AuthenticateResponse;
 import net.neuralm.minecraftmod.Neuralm;
+import net.neuralm.minecraftmod.SingleUseListener;
 
 public class LoginCommand {
 
+    /**
+     * Register the login command
+     *
+     * @param commandDispatcher The command dispatcher to register to
+     */
     public static void register(CommandDispatcher<CommandSource> commandDispatcher) {
+
+        //Register a command that starts with /login and needs an username (String) and password (String) argument
+        //Only operators can use it
+
         commandDispatcher.register(
             Commands.literal("login").requires((source) -> source.hasPermissionLevel(2))
                 .then(
@@ -27,15 +37,22 @@ public class LoginCommand {
 
     private static int login(CommandContext<CommandSource> context) {
 
-        Neuralm.instance.client.addListener("AuthenticateResponse", evt -> {
-            AuthenticateResponse response = (AuthenticateResponse) evt.getNewValue();
+        if (Neuralm.instance.client == null) {
+            context.getSource().sendFeedback(new TranslationTextComponent("neuralm.not_connected"), true);
+            return -1;
+        }
 
-            if(response.isSuccess()) {
-                context.getSource().sendFeedback(new StringTextComponent("Login successful!"), true);
-            } else {
-                context.getSource().sendFeedback(new StringTextComponent("Login failed!"), true);
-            }
-        });
+        new SingleUseListener((evt) -> {
+            AuthenticateResponse response = (AuthenticateResponse) evt.getNewValue();
+            context.getSource().getServer().runAsync(() -> {
+                if (response.isSuccess()) {
+                    context.getSource().sendFeedback(new TranslationTextComponent("neuralm.login.success"), true);
+                } else {
+                    context.getSource().sendFeedback(new TranslationTextComponent("neuralm.login.failed", response.getMessage()), true);
+                }
+            });
+
+        }, "AuthenticateResponse");
 
         Neuralm.instance.client.send(new AuthenticateRequest(context.getArgument("username", String.class), context.getArgument("password", String.class), "Name"));
 

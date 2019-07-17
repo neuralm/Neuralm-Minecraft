@@ -14,30 +14,32 @@ public class FakePlayer extends net.minecraftforge.common.util.FakePlayer {
         super(world, new GameProfile(owner.getUniqueID(), null));
         this.owner = owner;
     }
-//
-//    @Override
-//    public BlockPos getPosition() {
-//        return owner.getPosition();
-//    }
-//
-//    @Override
-//    public Vec3d getEyePosition(float partialTicks) {
-//        return owner.getEyePosition(partialTicks);
-//    }
-//
-//    @Override
-//    public void setPosition(double x, double y, double z) {
-//        if(owner==null) return;
-//        owner.setPosition(x, y, z);
-//    }
-//
-//    @Override
-//    public Vec3d getPositionVec() {
-//        return owner.getPositionVec();
-//    }
-//
-//    @Override
-//    public Vec3d getPositionVector() {
-//        return owner.getPositionVector();
-//    }
+
+    @Override
+    public BlockPos getPosition() {
+        return owner.getPosition();
+    }
+
+    @Override
+    public Vec3d getEyePosition(float partialTicks) {
+        return owner.getEyePosition(partialTicks);
+    }
+
+    @Override
+    public void setPosition(double x, double y, double z) {
+        if (owner == null) {
+            return;
+        }
+        owner.setPosition(x, y, z);
+    }
+
+    @Override
+    public Vec3d getPositionVec() {
+        return owner.getPositionVec();
+    }
+
+    @Override
+    public Vec3d getPositionVector() {
+        return owner.getPositionVector();
+    }
 }
