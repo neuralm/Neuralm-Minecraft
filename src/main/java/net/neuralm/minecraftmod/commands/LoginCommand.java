@@ -7,6 +7,8 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.neuralm.client.messages.requests.AuthenticateRequest;
 import net.neuralm.client.messages.responses.AuthenticateResponse;
@@ -38,7 +40,7 @@ public class LoginCommand {
     private static int login(CommandContext<CommandSource> context) {
 
         if (Neuralm.instance.client == null) {
-            context.getSource().sendFeedback(new TranslationTextComponent("neuralm.not_connected"), true);
+            context.getSource().sendFeedback(new TranslationTextComponent("neuralm.not_connected").setStyle(new Style().setColor(TextFormatting.RED)), true);
             return -1;
         }
 
@@ -46,9 +48,9 @@ public class LoginCommand {
             AuthenticateResponse response = (AuthenticateResponse) evt.getNewValue();
             context.getSource().getServer().runAsync(() -> {
                 if (response.isSuccess()) {
-                    context.getSource().sendFeedback(new TranslationTextComponent("neuralm.login.success"), true);
+                    context.getSource().sendFeedback(new TranslationTextComponent("neuralm.login.success").setStyle(new Style().setColor(TextFormatting.GREEN)), true);
                 } else {
-                    context.getSource().sendFeedback(new TranslationTextComponent("neuralm.login.failed", response.getMessage()), true);
+                    context.getSource().sendFeedback(new TranslationTextComponent("neuralm.login.failed", response.getMessage()).setStyle(new Style().setColor(TextFormatting.RED)), true);
                 }
             });
 

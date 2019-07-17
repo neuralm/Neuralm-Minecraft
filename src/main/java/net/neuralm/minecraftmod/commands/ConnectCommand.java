@@ -5,15 +5,18 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import java.io.IOException;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.neuralm.client.NeuralmClient;
 import net.neuralm.client.messages.serializer.JsonSerializer;
 import net.neuralm.minecraftmod.Neuralm;
 import net.neuralm.minecraftmod.SingleUseListener;
 import net.neuralm.minecraftmod.commands.LoginCommand.StringArgument;
+
+import java.io.IOException;
 
 public class ConnectCommand {
 
@@ -28,14 +31,14 @@ public class ConnectCommand {
         //Only operators can use it
 
         commandDispatcher.register(
-            Commands.literal("connect").requires((source) -> source.hasPermissionLevel(2))
-                .then(
-                    Commands.argument("ip", new StringArgument()).then(
-                        Commands.argument("port", IntegerArgumentType.integer()).then(
-                            Commands.argument("force", BoolArgumentType.bool()).executes(ConnectCommand::connectForce)
-                        ).executes(ConnectCommand::connect)
-                    )
-                )
+                Commands.literal("connect").requires((source) -> source.hasPermissionLevel(2))
+                        .then(
+                                Commands.argument("ip", new StringArgument()).then(
+                                        Commands.argument("port", IntegerArgumentType.integer()).then(
+                                                Commands.argument("force", BoolArgumentType.bool()).executes(ConnectCommand::connectForce)
+                                        ).executes(ConnectCommand::connect)
+                                )
+                        )
         );
     }
 
@@ -56,7 +59,9 @@ public class ConnectCommand {
         int port = context.getArgument("port", int.class);
 
         if (Neuralm.instance.client != null) {
-            context.getSource().sendFeedback(new TranslationTextComponent("neuralm.already_connected", ip, port), true);
+
+
+            context.getSource().sendFeedback(new TranslationTextComponent("neuralm.already_connected", ip, port).setStyle(new Style().setColor(TextFormatting.YELLOW)), true);
             return -1;
         }
 
@@ -64,7 +69,7 @@ public class ConnectCommand {
 
         new SingleUseListener(evt -> {
             context.getSource().getServer().runAsync(() -> {
-                context.getSource().sendFeedback(new TranslationTextComponent("neuralm.connected", ip, port), true);
+                context.getSource().sendFeedback(new TranslationTextComponent("neuralm.connected", ip, port).setStyle(new Style().setColor(TextFormatting.GREEN)), true);
             });
         }, "Connected");
 
