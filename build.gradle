@@ -20,7 +20,7 @@ archivesBaseName = 'neuralm'
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
 minecraft {
-    mappings channel: 'snapshot', version: '20190710-1.14.3'
+    mappings channel: 'snapshot', version: '20190718-1.14.3'
 
     // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
@@ -78,12 +78,12 @@ minecraft {
 }
 
 repositories {
-    mavenLocal()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.14.3-27.0.47'
-    compile 'net.neuralm.client:neuralm-client:1.0-SNAPSHOT'
+    minecraft 'net.minecraftforge:forge:1.14.3-27.0.57'
+    implementation 'com.github.neuralm:Neuralm-Java-Client:-SNAPSHOT'
 }
 
 // Example for how to get properties into the manifest for reading by the runtime..
