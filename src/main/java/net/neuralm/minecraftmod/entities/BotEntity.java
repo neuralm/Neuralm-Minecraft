@@ -39,8 +39,7 @@ public class BotEntity extends LivingEntity {
 
         this.setSneaking(true);
 
-        botSwingArm(Hand.MAIN_HAND);
-        botSwingArm(Hand.OFF_HAND);
+
     }
 
     public void botSwingArm(Hand hand) {
