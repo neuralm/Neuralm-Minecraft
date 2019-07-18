@@ -5,5 +5,6 @@
   "neuralm.register.failed": "Register failed! \n {0}",
   "neuralm.connected": "Neuralm connected to {0}::{1}!",
   "neuralm.not_connected": "Neuralm isn't connected yet! Please run /connect first!",
-  "neuralm.already_connected": "Neuralm is already connected to a server. Use /connect {0} {1} true to force a new connection"
+  "neuralm.already_connected": "Neuralm is already connected to a server. Use /connect {0} {1} true to force a new connection",
+  "block.neuralm.botmanager_block": "Bot Manager"
 }
