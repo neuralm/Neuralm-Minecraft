@@ -40,7 +40,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 * **Suppergerrie2** - *Initial work* - [Suppergerrie2](https://github.com/suppergerrie2)
 * **TheMechanist1** - *Initial work* - [MechanistPlays](https://github.com/TheMechanist1)
 
-See also the list of [contributors](https://github.com/neuralm/Neuralm-Server/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/neuralm/Neuralm-Minecraft/contributors) who participated in this project.
 
 ## License
 
