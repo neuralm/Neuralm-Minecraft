@@ -10,34 +10,38 @@ import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.*;
+import net.minecraft.util.DamageSource;
+import net.minecraft.util.Hand;
+import net.minecraft.util.HandSide;
+import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.*;
 import net.minecraft.world.ServerWorld;
 import net.minecraft.world.World;
 import net.minecraftforge.registries.ObjectHolder;
 import net.neuralm.minecraftmod.Neuralm;
-import net.neuralm.minecraftmod.inventory.ItemHandler;
+import net.neuralm.minecraftmod.inventory.BotItemHandler;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.List;
 
 public class BotEntity extends LivingEntity {
-    public final NonNullList<ItemStack> mainInventory = NonNullList.withSize(36, ItemStack.EMPTY);
-    public final NonNullList<ItemStack> armorInventory = NonNullList.withSize(4, ItemStack.EMPTY);
-    public final NonNullList<ItemStack> offHandInventory = NonNullList.withSize(1, ItemStack.EMPTY);
-    public int currentItem;
-    private final ItemHandler itemHandler;
-    public boolean lastTickLeftClicked;
-    public FakePlayer fakePlayer;
-    float hardness = 0;
-    @ObjectHolder(Neuralm.MODID + ":bot")
-    public static final EntityType<BotEntity> botEntityType = null;
+
+    private final BotItemHandler mainInventory = new BotItemHandler(this, BotItemHandler.InventoryType.MAIN);
+    private final BotItemHandler armorInventory = new BotItemHandler(this, BotItemHandler.InventoryType.ARMOR);
+    private final BotItemHandler offHandInventory = new BotItemHandler(this, BotItemHandler.InventoryType.OFFHAND);
+
+    private FakePlayer fakePlayer;
+
+    private int currentItem = 0;
+
+    //Mining related variables
+    private boolean lastTickLeftClicked;
+    private float hardness = 0;
     private BlockPos lastMinePos = BlockPos.ZERO;
     private int blockSoundTimer;
 
     public BotEntity(EntityType<? extends LivingEntity> type, World world) {
         super(type, world);
-        itemHandler = new ItemHandler(this);
     }
 
     @Override
@@ -53,14 +57,15 @@ public class BotEntity extends LivingEntity {
         this.updatePose();
         this.updateEntityActionState();
 
-        List<ItemEntity> items = this.world.getEntitiesWithinAABB(ItemEntity.class, this.getBoundingBox(this.getPose()).grow(1.0D, 0.0D, 1.0D));
+        if(!world.isRemote) {
+            //Get all items around the bot and try to pickup those items.
+            List<ItemEntity> items = this.world.getEntitiesWithinAABB(ItemEntity.class, this.getBoundingBox(this.getPose()).grow(1.0D, 0.0D, 1.0D));
 
-        for (ItemEntity item : items) {
-            pickup(item);
+            for (ItemEntity item : items) {
+                pickup(item);
+            }
         }
-
     }
-
 
     @Override
     public void tick() {
@@ -70,32 +75,35 @@ public class BotEntity extends LivingEntity {
         leftClick(rayTrace(this.getBlockReachDistance(), 0, 0));
     }
 
-    //This is broken and I dont know how to fix it... @SupperGerrie2 look into this please
-    private void leftClick(BlockRayTraceResult result) {
-
+    /**
+     * Simulate the left click action as a player would.
+     *
+     * @param result The entity or block it's looking at. (or nothing)
+     */
+    private void leftClick(RayTraceResult result) {
         if (result == null) return;
 
-        switch (result.getType()) {
-            case BLOCK:
-
-                mine(result.getPos());
-
-                break;
-            case ENTITY:
-                if (!lastTickLeftClicked) {
-//                    fakePlayer.attackTargetEntityWithCurrentItem();
-//                    swingArm(Hand.MAIN_HAND);
-
-                }
-            case MISS:
-            default:
-                resetMining();
-                break;
+        if(result instanceof BlockRayTraceResult && result.getType() == RayTraceResult.Type.BLOCK) {
+            mine(((BlockRayTraceResult) result).getPos());
+        } else {
+            resetMining();
         }
+
+        if (result instanceof  EntityRayTraceResult && result.getType() == RayTraceResult.Type.ENTITY) {
+            if (!lastTickLeftClicked) {
+                fakePlayer.attackTargetEntityWithCurrentItem(((EntityRayTraceResult)result).getEntity());
+                swingArm(Hand.MAIN_HAND);
+            }
+        }
+
         lastTickLeftClicked = true;
     }
 
-    //Allows the bot to mine the block in front of them
+    /**
+     * Mine the block at the given position.
+     * Doesn't do anything when the block is too far away or when {@link World#isRemote} is true.
+     * @param pos The position of the block to mine.
+     */
     private void mine(BlockPos pos) {
         if (world.isRemote) {
             return;
@@ -111,7 +119,6 @@ public class BotEntity extends LivingEntity {
         }
 
         lastMinePos = pos;
-
 
         BlockState state = world.getBlockState(pos);
         if (this.blockSoundTimer % 4.0F == 0.0F) {
@@ -166,111 +173,125 @@ public class BotEntity extends LivingEntity {
         }
     }
 
-    //Resets the mining progress
+    /**
+     * Reset the mining progress, also resets the mining animation. (cracks on block)
+     */
     private void resetMining() {
         hardness = 0;
         this.world.sendBlockBreakProgress(this.getEntityId(), lastMinePos, -1);
         this.lastMinePos.down(255);
     }
 
-    //Gets the raytrace result of the block in front of the bot's vision
-    private BlockRayTraceResult rayTrace(double blockReachDistance, float rotatePitch, float rotateYaw) {
-        Vec3d vec3d = this.getEyePosition(0);
-//        Vec3d vec3d1 = this.getLookVec();
-        float f = (this.rotationPitch + rotatePitch) * ((float) Math.PI / 180F);
-        float f1 = (-this.rotationYaw + -rotateYaw) * ((float) Math.PI / 180F);
-        float f2 = MathHelper.cos(f1);
-        float f3 = MathHelper.sin(f1);
-        float f4 = MathHelper.cos(f);
-        float f5 = MathHelper.sin(f);
-        float xOffset = f3 * f4;
-        float yOffset = -f5;
-        float zOffset = f2 * f4;
+    /**
+     * Raytrace with the given pitch rotation offsets and the given distance.
+     * @param distance The maximum distance
+     * @param pitchOffset The pitch offset
+     * @param yawOffset The yaw offset
+     * @return A raytrace result.
+     */
+    //TODO: Only hits blocks, doesn't work for entities.
+    private RayTraceResult rayTrace(double distance, float pitchOffset, float yawOffset) {
+        Vec3d eyePosition = this.getEyePosition(0);
 
-        Vec3d vec3d2 = vec3d.add(xOffset * blockReachDistance, yOffset * blockReachDistance, zOffset * blockReachDistance);
-        RayTraceContext ctx = new RayTraceContext(vec3d, vec3d2, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE, this);
-        BlockRayTraceResult result = this.world.rayTraceBlocks(ctx);
-        return new BlockRayTraceResult(result.getHitVec(), result.getFace(), result.getPos(), false);
+        //Convert rotation from degrees to radians
+        float rotationPitchRadians = (this.rotationPitch + pitchOffset) * ((float) Math.PI / 180F);
+        float rotationYawRadius = (-this.rotationYaw + -yawOffset) * ((float) Math.PI / 180F);
+
+        float f4 = MathHelper.cos(rotationPitchRadians);
+        float xOffset = MathHelper.sin(rotationYawRadius) * f4;
+        float yOffset = -MathHelper.sin(rotationPitchRadians);
+        float zOffset = MathHelper.cos(rotationYawRadius) * f4;
+
+        Vec3d endPosition = eyePosition.add(xOffset * distance, yOffset * distance, zOffset * distance);
+        RayTraceContext ctx = new RayTraceContext(eyePosition, endPosition, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE, this);
+
+        return this.world.rayTraceBlocks(ctx);
     }
 
-    //Gets the reach distance of the bot
+    /**
+     * Get the bot's block reach distance.
+     * @return The bot's block reach distance
+     */
     private float getBlockReachDistance() {
         return (float) this.getAttributes().getAttributeInstanceByName("generic.reachdistance").getValue();
 
     }
 
-    //Swings the bot's arm
-    public void botSwingArm(Hand hand) {
+    /**
+     * Swing the bot's arm
+     * @param hand Which hand to swing
+     */
+    private void botSwingArm(Hand hand) {
         if (!isSwingInProgress) {
             swingArm(hand);
         }
     }
 
-    //Updates the pose for things like sneaking
-    public void updatePose() {
-        Pose pose;
+    /**
+     * Update the bot's pose for things like sneaking.
+     */
+    private void updatePose() {
+        Pose pose = Pose.STANDING;
+
         if (this.isSneaking()) {
             pose = Pose.SNEAKING;
-            this.setPose(pose);
         }
 
+        this.setPose(pose);
     }
 
-    //Copy paste from player entity so it works. Does nothing right now
     @Override
     @NonNull
     public Iterable<ItemStack> getArmorInventoryList() {
-
-        return this.armorInventory;
+        return this.armorInventory.getItemStacks();
     }
 
-    //Copy paste from player entity so it works. Does nothing right now
     @Override
     @NonNull
     public ItemStack getItemStackFromSlot(@NonNull EquipmentSlotType slotIn) {
         if (slotIn == EquipmentSlotType.MAINHAND) {
-            return this.mainInventory.get(currentItem);
+            return this.mainInventory.getStackInSlot(currentItem);
         } else if (slotIn == EquipmentSlotType.OFFHAND) {
-            return this.offHandInventory.get(0);
-        } else {
-            return slotIn.getSlotType() == EquipmentSlotType.Group.ARMOR ? this.armorInventory.get(slotIn.getIndex()) : ItemStack.EMPTY;
+            return this.offHandInventory.getStackInSlot(0);
+        } else if (slotIn.getSlotType() == EquipmentSlotType.Group.ARMOR) {
+            return this.armorInventory.getStackInSlot(slotIn.getIndex());
         }
+
+        return ItemStack.EMPTY;
     }
 
-    //Copy paste from player entity so it works. Does nothing right now
     @Override
     public void setItemStackToSlot(EquipmentSlotType slotIn, ItemStack stack) {
         if (slotIn == EquipmentSlotType.MAINHAND) {
             this.playEquipSound(stack);
-            this.mainInventory.set(this.currentItem, stack);
+            this.mainInventory.setStackInSlot(this.currentItem, stack);
         } else if (slotIn == EquipmentSlotType.OFFHAND) {
             this.playEquipSound(stack);
-            this.offHandInventory.set(0, stack);
+            this.offHandInventory.setStackInSlot(0, stack);
         } else if (slotIn.getSlotType() == EquipmentSlotType.Group.ARMOR) {
             this.playEquipSound(stack);
-            this.armorInventory.set(slotIn.getIndex(), stack);
+            this.armorInventory.setStackInSlot(slotIn.getIndex(), stack);
         }
     }
 
     @Override
+    @NonNull
     public HandSide getPrimaryHand() {
         return HandSide.RIGHT;
     }
 
-    //Pickup items around the block
+    /**
+     * Try and insert the given item entity into the bot's inventory.
+     * @param item The item entity that should be picked up.
+     */
     private void pickup(ItemEntity item) {
         if (item.cannotPickup()) return;
 
         ItemStack stack = item.getItem();
 
-
-        for (int i = 0; i < this.itemHandler.getSlots() && !stack.isEmpty(); i++) {
-            stack = this.itemHandler.insertItem(i, stack, false);
-
-//            PacketHandler.INSTANCE.sendToAllTracking(new SyncHandsMessage(this.itemHandler.getStackInSlot(i), getEntityId(), i, selectedItemIndex), this);
+        for (int i = 0; i < this.mainInventory.getSlots() && !stack.isEmpty(); i++) {
+            stack = this.mainInventory.insertItem(i, stack, false);
         }
-
-        this.setHeldItem(Hand.MAIN_HAND, this.itemHandler.getStackInSlot(this.currentItem));
 
         if (stack.isEmpty()) {
             item.remove();
@@ -284,15 +305,30 @@ public class BotEntity extends LivingEntity {
         //Reset mining so there isnt a crack in a block forever
         this.resetMining();
 
-
         if (!this.world.isRemote()) {
 
             //Drop all items in the inventory
-            for (int i = 0; i < this.itemHandler.getSlots(); i++) {
-                ItemStack itemStack = this.itemHandler.getStackInSlot(i);
+            for (int i = 0; i < this.mainInventory.getSlots(); i++) {
+                ItemStack itemStack = this.mainInventory.getStackInSlot(i);
                 if (!itemStack.isEmpty()) {
                     this.entityDropItem(itemStack);
-                    this.itemHandler.extractItem(i, itemStack.getCount(), true);
+                    this.mainInventory.extractItem(i, itemStack.getCount(), true);
+                }
+            }
+
+            for (int i = 0; i < this.armorInventory.getSlots(); i++) {
+                ItemStack itemStack = this.armorInventory.getStackInSlot(i);
+                if (!itemStack.isEmpty()) {
+                    this.entityDropItem(itemStack);
+                    this.armorInventory.extractItem(i, itemStack.getCount(), true);
+                }
+            }
+
+            for (int i = 0; i < this.offHandInventory.getSlots(); i++) {
+                ItemStack itemStack = this.offHandInventory.getStackInSlot(i);
+                if (!itemStack.isEmpty()) {
+                    this.entityDropItem(itemStack);
+                    this.offHandInventory.extractItem(i, itemStack.getCount(), true);
                 }
             }
 
@@ -305,8 +341,13 @@ public class BotEntity extends LivingEntity {
 
     }
 
-    //Make sure the fake player is not null
-    private FakePlayer getFakePlayer() {
+    /**
+     * Get the fake player associated with this bot.
+     * Creates the fake player if it doesn't exist.
+     * Always returns null when {@link World#isRemote} is true.
+     * @return The fake player
+     */
+    public FakePlayer getFakePlayer() {
         if (!world.isRemote) {
             if (this.fakePlayer == null) {
                 this.fakePlayer = new FakePlayer(this, (ServerWorld) world);
