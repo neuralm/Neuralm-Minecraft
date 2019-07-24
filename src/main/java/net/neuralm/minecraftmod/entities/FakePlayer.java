@@ -3,7 +3,7 @@ package net.neuralm.minecraftmod.entities;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.ServerWorld;
+import net.minecraft.world.server.ServerWorld;
 
 @SuppressWarnings("EntityConstructor")
 public class FakePlayer extends net.minecraftforge.common.util.FakePlayer {

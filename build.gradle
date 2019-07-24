@@ -20,8 +20,8 @@ archivesBaseName = 'neuralm'
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
 minecraft {
-    mappings channel: 'snapshot', version: '20190718-1.14.3'
-
+    mappings channel: 'snapshot', version: '20190724-1.14.3'
+    
     // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
     runs {
@@ -82,7 +82,7 @@ repositories {
 }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.14.3-27.0.57'
+    minecraft 'net.minecraftforge:forge:1.14.4-28.0.13'
     implementation 'com.github.neuralm:Neuralm-Java-Client:-SNAPSHOT'
 }
 

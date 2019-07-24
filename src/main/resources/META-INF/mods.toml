@@ -5,7 +5,7 @@ loaderVersion="[27,)" #(27 is 1.14.3)
 modId="neuralm"
 version="${file.jarVersion}"
 displayName="Neuralm Minecraft"
-authors="suppergerrie2 and Glovali"
+authors="suppergerrie2, Glovali and MechanistPlays"
 description='''
 This mod adds the neuralm system to minecraft
 '''
