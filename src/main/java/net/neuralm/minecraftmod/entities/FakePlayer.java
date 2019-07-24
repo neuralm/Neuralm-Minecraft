@@ -1,6 +1,8 @@
 package net.neuralm.minecraftmod.entities;
 
 import com.mojang.authlib.GameProfile;
+import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.server.ServerWorld;
@@ -11,7 +13,7 @@ public class FakePlayer extends net.minecraftforge.common.util.FakePlayer {
     final BotEntity owner;
 
     public FakePlayer(BotEntity owner, ServerWorld world) {
-        super(world, new GameProfile(owner.getUniqueID(), null));
+        super(world, new GameProfile(owner.getUniqueID(), "BOT"));
         this.owner = owner;
     }
 
@@ -41,5 +43,34 @@ public class FakePlayer extends net.minecraftforge.common.util.FakePlayer {
     @Override
     public Vec3d getPositionVector() {
         return owner.getPositionVector();
+    }
+
+    @Override
+    public void setItemStackToSlot(EquipmentSlotType slotIn, ItemStack stack) {
+        super.setItemStackToSlot(slotIn, stack);
+    }
+
+    private void applyAttributes() {
+        for (EquipmentSlotType equipmentslottype : EquipmentSlotType.values()) {
+            ItemStack itemstack;
+            switch (equipmentslottype.getSlotType()) {
+                case HAND:
+                case ARMOR:
+                    itemstack = this.getItemStackFromSlot(equipmentslottype);
+                    break;
+                default:
+                    continue;
+            }
+
+            if (!itemstack.isEmpty()) {
+                this.getAttributes().applyAttributeModifiers(itemstack.getAttributeModifiers(equipmentslottype));
+            }
+        }
+    }
+
+    @Override
+    public void tick() {
+        ++this.ticksSinceLastSwing;
+        applyAttributes();
     }
 }

@@ -8,15 +8,13 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.Pose;
 import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.ProjectileHelper;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.Hand;
-import net.minecraft.util.HandSide;
-import net.minecraft.util.SoundCategory;
+import net.minecraft.util.*;
 import net.minecraft.util.math.*;
-import net.minecraft.world.server.ServerWorld;
 import net.minecraft.world.World;
+import net.minecraft.world.server.ServerWorld;
 import net.neuralm.minecraftmod.inventory.BotItemHandler;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
@@ -32,8 +30,9 @@ public class BotEntity extends LivingEntity {
 
     private int currentItem = 0;
 
-    //Mining related variables
     private boolean lastTickLeftClicked;
+
+    //Mining related variables
     private float hardness = 0;
     private BlockPos lastMinePos = BlockPos.ZERO;
     private int blockSoundTimer;
@@ -69,8 +68,12 @@ public class BotEntity extends LivingEntity {
     public void tick() {
         super.tick();
 
+        if(!world.isRemote) {
+            getFakePlayer().tick();
+        }
+
         this.rotationYawHead = this.rotationYaw;
-        leftClick(rayTrace(this.getBlockReachDistance(), 0, 0));
+        leftClick(rayTrace());
     }
 
     /**
@@ -89,12 +92,14 @@ public class BotEntity extends LivingEntity {
 
         if (result instanceof  EntityRayTraceResult && result.getType() == RayTraceResult.Type.ENTITY) {
             if (!lastTickLeftClicked) {
-                fakePlayer.attackTargetEntityWithCurrentItem(((EntityRayTraceResult)result).getEntity());
+                if(!world.isRemote && getFakePlayer().getCooledAttackStrength(0)>=1) getFakePlayer().attackTargetEntityWithCurrentItem(((EntityRayTraceResult)result).getEntity());
                 swingArm(Hand.MAIN_HAND);
+
+                lastTickLeftClicked = true;
+            } else {
+                lastTickLeftClicked = false;
             }
         }
-
-        lastTickLeftClicked = true;
     }
 
     /**
@@ -260,6 +265,10 @@ public class BotEntity extends LivingEntity {
 
     @Override
     public void setItemStackToSlot(EquipmentSlotType slotIn, ItemStack stack) {
+        if(!world.isRemote){
+            getFakePlayer().setItemStackToSlot(slotIn, stack);
+        }
+
         if (slotIn == EquipmentSlotType.MAINHAND) {
             this.playEquipSound(stack);
             this.mainInventory.setStackInSlot(this.currentItem, stack);
@@ -356,6 +365,49 @@ public class BotEntity extends LivingEntity {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Ray trace for entities and blocks
+     * @return A {@link RayTraceResult} with what was hit.
+     */
+    public RayTraceResult rayTrace() {
+        double reachDistance = (double)this.getBlockReachDistance();
+        RayTraceResult objectMouseOver = this.rayTrace(reachDistance, 0, 0);
+        Vec3d eyePosition = this.getEyePosition(0);
+        boolean flag = false;
+
+        if (reachDistance > 3.0D) {
+            flag = true;
+        }
+
+        double reachDistanceSqr = reachDistance * reachDistance;
+
+        if (objectMouseOver.getType() != RayTraceResult.Type.MISS) {
+            reachDistanceSqr = objectMouseOver.getHitVec().squareDistanceTo(eyePosition);
+        }
+
+        //TODO: add pitch and yaw offsets.
+        Vec3d raytraceStart = this.getLook(0);
+        Vec3d raytraceEnd = eyePosition.add(raytraceStart.x * reachDistance, raytraceStart.y * reachDistance, raytraceStart.z * reachDistance);
+
+        AxisAlignedBB seeDistanceBox = this.getBoundingBox().expand(raytraceStart.scale(reachDistance)).grow(1.0D, 1.0D, 1.0D);
+
+        //Ray trace for entities.
+        EntityRayTraceResult rayTraceResult = ProjectileHelper.func_221269_a(world,this, eyePosition, raytraceEnd, seeDistanceBox, (entity) -> !entity.isSpectator() && entity.canBeCollidedWith(), reachDistanceSqr);
+
+        if (rayTraceResult != null) {
+            Vec3d hitVec = rayTraceResult.getHitVec();
+
+            double distanceSqr = eyePosition.squareDistanceTo(hitVec);
+            if (flag && distanceSqr > 9.0D) {
+                objectMouseOver = BlockRayTraceResult.createMiss(hitVec, Direction.getFacingFromVector(raytraceStart.x, raytraceStart.y, raytraceStart.z), new BlockPos(hitVec));
+            } else if (distanceSqr < reachDistanceSqr || objectMouseOver.getType() == RayTraceResult.Type.MISS) {
+                objectMouseOver = rayTraceResult;
+            }
+        }
+
+        return objectMouseOver;
     }
 
 
