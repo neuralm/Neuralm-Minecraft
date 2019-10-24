@@ -16,8 +16,8 @@ import net.minecraft.util.math.*;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.neuralm.minecraftmod.inventory.BotItemHandler;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 
 public class BotEntity extends LivingEntity {
@@ -244,14 +244,14 @@ public class BotEntity extends LivingEntity {
     }
 
     @Override
-    @NonNull
+    @Nonnull
     public Iterable<ItemStack> getArmorInventoryList() {
         return this.armorInventory.getItemStacks();
     }
 
     @Override
-    @NonNull
-    public ItemStack getItemStackFromSlot(@NonNull EquipmentSlotType slotIn) {
+    @Nonnull
+    public ItemStack getItemStackFromSlot(@Nonnull EquipmentSlotType slotIn) {
         if (slotIn == EquipmentSlotType.MAINHAND) {
             return this.mainInventory.getStackInSlot(currentItem);
         } else if (slotIn == EquipmentSlotType.OFFHAND) {
@@ -282,7 +282,7 @@ public class BotEntity extends LivingEntity {
     }
 
     @Override
-    @NonNull
+    @Nonnull
     public HandSide getPrimaryHand() {
         return HandSide.RIGHT;
     }

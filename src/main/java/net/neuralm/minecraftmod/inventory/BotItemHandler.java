@@ -51,7 +51,7 @@ public class BotItemHandler extends ItemStackHandler {
                 owner.getFakePlayer().inventory.setInventorySlotContents(slot, getStackInSlot(slot));
                 break;
             case ARMOR:
-                owner.getFakePlayer().setItemStackToSlot(EquipmentSlotType.func_220318_a(EquipmentSlotType.Group.ARMOR, slot), getStackInSlot(slot));
+                owner.getFakePlayer().setItemStackToSlot(EquipmentSlotType.fromSlotTypeAndIndex(EquipmentSlotType.Group.ARMOR, slot), getStackInSlot(slot));
                 break;
             case OFFHAND:
                 owner.getFakePlayer().setItemStackToSlot(EquipmentSlotType.OFFHAND, getStackInSlot(slot));
