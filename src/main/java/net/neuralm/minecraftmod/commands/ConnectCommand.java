@@ -44,7 +44,7 @@ public class ConnectCommand {
 
     private static int connectForce(CommandContext<CommandSource> context) {
         if (context.getArgument("force", boolean.class)) {
-//            Neuralm.instance.client.disconnect(); No disconnect method yet
+//TODO            Neuralm.instance.client.disconnect(); No disconnect method yet
             Neuralm.instance.client = null;
         }
 
@@ -59,8 +59,6 @@ public class ConnectCommand {
         int port = context.getArgument("port", int.class);
 
         if (Neuralm.instance.client != null) {
-
-
             context.getSource().sendFeedback(new TranslationTextComponent("neuralm.already_connected", ip, port).setStyle(new Style().setColor(TextFormatting.YELLOW)), true);
             return -1;
         }

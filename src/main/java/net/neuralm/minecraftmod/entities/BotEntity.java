@@ -18,18 +18,25 @@ import net.minecraft.world.server.ServerWorld;
 import net.neuralm.minecraftmod.inventory.BotItemHandler;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class BotEntity extends LivingEntity {
 
+    //Bot has 3 separate inventories, the main inventory which you can see as the hotbar and the 9*3 grid
     private final BotItemHandler mainInventory = new BotItemHandler(this, BotItemHandler.InventoryType.MAIN);
+    //The armor inventory which are the 4 slots that can contain armor
     private final BotItemHandler armorInventory = new BotItemHandler(this, BotItemHandler.InventoryType.ARMOR);
+    //The offhand inventory is just a single lonely slot
     private final BotItemHandler offHandInventory = new BotItemHandler(this, BotItemHandler.InventoryType.OFFHAND);
 
+    //To interact with the world
     private FakePlayer fakePlayer;
 
+    //The current selected item
     private int currentItem = 0;
 
+    //Whether the bot has tried left clicking last tick.
     private boolean lastTickLeftClicked;
 
     //Mining related variables
@@ -81,18 +88,25 @@ public class BotEntity extends LivingEntity {
      *
      * @param result The entity or block it's looking at. (or nothing)
      */
-    private void leftClick(RayTraceResult result) {
+    private void leftClick(@Nullable RayTraceResult result) {
         if (result == null) return;
 
+        //If it is seeing a block, is should mine
         if(result instanceof BlockRayTraceResult && result.getType() == RayTraceResult.Type.BLOCK) {
             mine(((BlockRayTraceResult) result).getPos());
         } else {
+            //If it doesnt see a block, mining should be reset
             resetMining();
         }
 
+        //If it is seeing an entity it should attack, but only if it didnt left click last tick.
         if (result instanceof  EntityRayTraceResult && result.getType() == RayTraceResult.Type.ENTITY) {
             if (!lastTickLeftClicked) {
-                if(!world.isRemote && getFakePlayer().getCooledAttackStrength(0)>=1) getFakePlayer().attackTargetEntityWithCurrentItem(((EntityRayTraceResult)result).getEntity());
+                //If we can attack (according to the fake player) we attack. TODO: Should this be here or should it be able to spam attack if it wants?
+                if(!world.isRemote && getFakePlayer().getCooledAttackStrength(0)>=1) {
+                    getFakePlayer().attackTargetEntityWithCurrentItem(((EntityRayTraceResult)result).getEntity());
+                }
+
                 swingArm(Hand.MAIN_HAND);
 
                 lastTickLeftClicked = true;
@@ -107,20 +121,24 @@ public class BotEntity extends LivingEntity {
      * Doesn't do anything when the block is too far away or when {@link World#isRemote} is true.
      * @param pos The position of the block to mine.
      */
+    //TODO: Its mining speed doesn't match the player, should be fixed
     private void mine(BlockPos pos) {
         if (world.isRemote) {
             return;
         }
 
+        //If the block is outside of the border, or it is too far away from the bot reset mining.
         if (!this.world.getWorldBorder().contains(pos) || pos.distanceSq(getPosition()) > this.getBlockReachDistance() * this.getBlockReachDistance()) {
             resetMining();
             return;
         }
 
+        //If we started mining a new position, reset mining before continuing.
         if (!lastMinePos.equals(pos)) {
             resetMining();
         }
 
+        //Update the position we are mining.
         lastMinePos = pos;
 
         BlockState state = world.getBlockState(pos);
@@ -186,32 +204,6 @@ public class BotEntity extends LivingEntity {
     }
 
     /**
-     * Raytrace with the given pitch rotation offsets and the given distance.
-     * @param distance The maximum distance
-     * @param pitchOffset The pitch offset
-     * @param yawOffset The yaw offset
-     * @return A raytrace result.
-     */
-    //TODO: Only hits blocks, doesn't work for entities.
-    private RayTraceResult rayTrace(double distance, float pitchOffset, float yawOffset) {
-        Vec3d eyePosition = this.getEyePosition(0);
-
-        //Convert rotation from degrees to radians
-        float rotationPitchRadians = (this.rotationPitch + pitchOffset) * ((float) Math.PI / 180F);
-        float rotationYawRadius = (-this.rotationYaw + -yawOffset) * ((float) Math.PI / 180F);
-
-        float f4 = MathHelper.cos(rotationPitchRadians);
-        float xOffset = MathHelper.sin(rotationYawRadius) * f4;
-        float yOffset = -MathHelper.sin(rotationPitchRadians);
-        float zOffset = MathHelper.cos(rotationYawRadius) * f4;
-
-        Vec3d endPosition = eyePosition.add(xOffset * distance, yOffset * distance, zOffset * distance);
-        RayTraceContext ctx = new RayTraceContext(eyePosition, endPosition, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE, this);
-
-        return this.world.rayTraceBlocks(ctx);
-    }
-
-    /**
      * Get the bot's block reach distance.
      * @return The bot's block reach distance
      */
@@ -249,6 +241,13 @@ public class BotEntity extends LivingEntity {
         return this.armorInventory.getItemStacks();
     }
 
+    /**
+     * Returns the ItemStack in the given slot
+     *
+     * This method will check for the slot type so it can get it from the right inventory.
+     * @param slotIn The slot to get the item from
+     * @return The itemstack in the slot, can be {@link ItemStack#EMPTY} if the slot is empty or non-existent on this bot.
+     */
     @Override
     @Nonnull
     public ItemStack getItemStackFromSlot(@Nonnull EquipmentSlotType slotIn) {
@@ -263,8 +262,15 @@ public class BotEntity extends LivingEntity {
         return ItemStack.EMPTY;
     }
 
+    /**
+     * Sets the given {@link ItemStack} to the slot corresponding to the given {@link EquipmentSlotType}.
+     *
+     * This method will sync the item to the fake player if on the server side.
+     * @param slotIn
+     * @param stack
+     */
     @Override
-    public void setItemStackToSlot(EquipmentSlotType slotIn, ItemStack stack) {
+    public void setItemStackToSlot(@Nonnull EquipmentSlotType slotIn, @Nonnull ItemStack stack) {
         if(!world.isRemote){
             getFakePlayer().setItemStackToSlot(slotIn, stack);
         }
@@ -288,7 +294,7 @@ public class BotEntity extends LivingEntity {
     }
 
     /**
-     * Try and insert the given item entity into the bot's inventory.
+     * Try and insert the given {@link ItemEntity} into the bot's inventory.
      * @param item The item entity that should be picked up.
      */
     private void pickup(ItemEntity item) {
@@ -296,10 +302,12 @@ public class BotEntity extends LivingEntity {
 
         ItemStack stack = item.getItem();
 
+        //Find the first empty slot and insert the item
         for (int i = 0; i < this.mainInventory.getSlots() && !stack.isEmpty(); i++) {
             stack = this.mainInventory.insertItem(i, stack, false);
         }
 
+        //If all items were inserted the itementity can be removed
         if (stack.isEmpty()) {
             item.remove();
         }
@@ -319,7 +327,6 @@ public class BotEntity extends LivingEntity {
                 ItemStack itemStack = this.mainInventory.getStackInSlot(i);
                 if (!itemStack.isEmpty()) {
                     this.entityDropItem(itemStack);
-                    this.mainInventory.extractItem(i, itemStack.getCount(), true);
                 }
             }
 
@@ -327,7 +334,6 @@ public class BotEntity extends LivingEntity {
                 ItemStack itemStack = this.armorInventory.getStackInSlot(i);
                 if (!itemStack.isEmpty()) {
                     this.entityDropItem(itemStack);
-                    this.armorInventory.extractItem(i, itemStack.getCount(), true);
                 }
             }
 
@@ -335,7 +341,6 @@ public class BotEntity extends LivingEntity {
                 ItemStack itemStack = this.offHandInventory.getStackInSlot(i);
                 if (!itemStack.isEmpty()) {
                     this.entityDropItem(itemStack);
-                    this.offHandInventory.extractItem(i, itemStack.getCount(), true);
                 }
             }
 
@@ -344,8 +349,6 @@ public class BotEntity extends LivingEntity {
                 world.getServer().getPlayerList().sendMessage(cause.getDeathMessage(this));
             }
         }
-
-
     }
 
     /**
@@ -361,7 +364,6 @@ public class BotEntity extends LivingEntity {
             }
 
             return this.fakePlayer;
-
         } else {
             return null;
         }
@@ -372,43 +374,66 @@ public class BotEntity extends LivingEntity {
      * @return A {@link RayTraceResult} with what was hit.
      */
     public RayTraceResult rayTrace() {
-        double reachDistance = (double)this.getBlockReachDistance();
-        RayTraceResult objectMouseOver = this.rayTrace(reachDistance, 0, 0);
+
+        //Ray tracec for a block first
+        double reachDistance = this.getBlockReachDistance();
+        RayTraceResult raytraceResult = this.rayTraceBlock(reachDistance, 0, 0);
+
         Vec3d eyePosition = this.getEyePosition(0);
-        boolean flag = false;
 
-        if (reachDistance > 3.0D) {
-            flag = true;
-        }
+        double maxDistanceSqr = reachDistance * reachDistance;
 
-        double reachDistanceSqr = reachDistance * reachDistance;
-
-        if (objectMouseOver.getType() != RayTraceResult.Type.MISS) {
-            reachDistanceSqr = objectMouseOver.getHitVec().squareDistanceTo(eyePosition);
+        //If there is a block the max distance we check is the distance to that block, if an entity is closer that means we see the entity
+        if (raytraceResult.getType() != RayTraceResult.Type.MISS) {
+            maxDistanceSqr = raytraceResult.getHitVec().squareDistanceTo(eyePosition);
         }
 
         //TODO: add pitch and yaw offsets.
         Vec3d raytraceStart = this.getLook(0);
         Vec3d raytraceEnd = eyePosition.add(raytraceStart.x * reachDistance, raytraceStart.y * reachDistance, raytraceStart.z * reachDistance);
 
+        //This is the box entities can be in and visible
         AxisAlignedBB seeDistanceBox = this.getBoundingBox().expand(raytraceStart.scale(reachDistance)).grow(1.0D, 1.0D, 1.0D);
 
         //Ray trace for entities.
-        EntityRayTraceResult rayTraceResult = ProjectileHelper.func_221269_a(world,this, eyePosition, raytraceEnd, seeDistanceBox, (entity) -> !entity.isSpectator() && entity.canBeCollidedWith(), reachDistanceSqr);
+        EntityRayTraceResult rayTraceResult = ProjectileHelper.func_221269_a(world,this, eyePosition, raytraceEnd, seeDistanceBox, (entity) -> !entity.isSpectator() && entity.canBeCollidedWith(), maxDistanceSqr);
 
         if (rayTraceResult != null) {
             Vec3d hitVec = rayTraceResult.getHitVec();
 
             double distanceSqr = eyePosition.squareDistanceTo(hitVec);
-            if (flag && distanceSqr > 9.0D) {
-                objectMouseOver = BlockRayTraceResult.createMiss(hitVec, Direction.getFacingFromVector(raytraceStart.x, raytraceStart.y, raytraceStart.z), new BlockPos(hitVec));
-            } else if (distanceSqr < reachDistanceSqr || objectMouseOver.getType() == RayTraceResult.Type.MISS) {
-                objectMouseOver = rayTraceResult;
+            if (distanceSqr >= maxDistanceSqr) {
+                raytraceResult = BlockRayTraceResult.createMiss(hitVec, Direction.getFacingFromVector(raytraceStart.x, raytraceStart.y, raytraceStart.z), new BlockPos(hitVec));
+            } else if (distanceSqr < maxDistanceSqr || raytraceResult.getType() == RayTraceResult.Type.MISS) {
+                raytraceResult = rayTraceResult;
             }
         }
 
-        return objectMouseOver;
+        return raytraceResult;
     }
 
+    /**
+     * Raytrace with the given pitch rotation offsets and the given distance.
+     * @param distance The maximum distance
+     * @param pitchOffset The pitch offset
+     * @param yawOffset The yaw offset
+     * @return A raytrace result.
+     */
+    private RayTraceResult rayTraceBlock(double distance, float pitchOffset, float yawOffset) {
+        Vec3d eyePosition = this.getEyePosition(0);
 
+        //Convert rotation from degrees to radians
+        float rotationPitchRadians = (this.rotationPitch + pitchOffset) * ((float) Math.PI / 180F);
+        float rotationYawRadius = (-this.rotationYaw + -yawOffset) * ((float) Math.PI / 180F);
+
+        float horizontalScale = MathHelper.cos(rotationPitchRadians);
+        float xOffset = MathHelper.sin(rotationYawRadius) * horizontalScale;
+        float yOffset = -MathHelper.sin(rotationPitchRadians);
+        float zOffset = MathHelper.cos(rotationYawRadius) * horizontalScale;
+
+        Vec3d endPosition = eyePosition.add(xOffset * distance, yOffset * distance, zOffset * distance);
+        RayTraceContext ctx = new RayTraceContext(eyePosition, endPosition, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE, this);
+
+        return this.world.rayTraceBlocks(ctx);
+    }
 }

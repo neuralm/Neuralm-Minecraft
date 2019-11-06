@@ -1,6 +1,5 @@
 package net.neuralm.minecraftmod;
 
-import java.io.IOException;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.player.PlayerEntity;
@@ -15,6 +14,7 @@ import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.neuralm.client.NeuralmClient;
@@ -23,6 +23,7 @@ import net.neuralm.minecraftmod.commands.LoginCommand;
 import net.neuralm.minecraftmod.commands.RegisterCommand;
 import net.neuralm.minecraftmod.entities.BotEntity;
 import net.neuralm.minecraftmod.entities.renderer.BotEntityRenderer;
+import net.neuralm.minecraftmod.networking.PacketHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -35,15 +36,26 @@ public class Neuralm {
     public NeuralmClient client;
     private final Logger logger;
 
-    public Neuralm() throws IOException {
+    public Neuralm() {
         instance = this;
         logger = LogManager.getLogger();
 
+        //Register the event handlers to forge.
         FMLJavaModLoadingContext.get().getModEventBus().addGenericListener(Item.class, this::registerItems);
         FMLJavaModLoadingContext.get().getModEventBus().addGenericListener(EntityType.class, this::registerEntityType);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::registerEntityRender);
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::commonSetupEventHandler);
 
         MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
+    }
+
+    /***
+     * Do setup stuff that should happen on both the client and server.
+     * Ex. setting up the mod's network channel
+     * @param event The event fired by forge
+     */
+    private void commonSetupEventHandler(FMLCommonSetupEvent event) {
+        PacketHandler.registerChannel();
     }
 
     /***
@@ -77,6 +89,8 @@ public class Neuralm {
 
                 @Override
                 public ActionResult<ItemStack> onItemRightClick(World worldIn, PlayerEntity playerIn, Hand handIn) {
+
+                    //If you need it to do anything on right click add your code here
 
                     return super.onItemRightClick(worldIn, playerIn, handIn);
                 }
