@@ -7,22 +7,35 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.server.ServerWorld;
 
-@SuppressWarnings("EntityConstructor")
+import javax.annotation.Nonnull;
+
+/**
+ * A fakeplayer which can be used when a method is called that needs a player as argument.
+ * Most methods in here are just passed through the owner {@link BotEntity}.
+ */
 public class FakePlayer extends net.minecraftforge.common.util.FakePlayer {
 
-    final BotEntity owner;
+    //The fake player's owner
+    private final BotEntity owner;
 
-    public FakePlayer(BotEntity owner, ServerWorld world) {
+    /**
+     * Create a new fake player for a bot
+     * @param owner The {@link BotEntity} that needs this fake player.
+     * @param world The world the bot lives in.
+     */
+    FakePlayer(BotEntity owner, ServerWorld world) {
         super(world, new GameProfile(owner.getUniqueID(), "BOT"));
         this.owner = owner;
     }
 
     @Override
+    @Nonnull
     public BlockPos getPosition() {
         return owner.getPosition();
     }
 
     @Override
+    @Nonnull
     public Vec3d getEyePosition(float partialTicks) {
         return owner.getEyePosition(partialTicks);
     }
@@ -32,10 +45,12 @@ public class FakePlayer extends net.minecraftforge.common.util.FakePlayer {
         if (owner == null) {
             return;
         }
+
         owner.setPosition(x, y, z);
     }
 
     @Override
+    @Nonnull
     public Vec3d getPositionVec() {
         return owner.getPositionVec();
     }
@@ -45,11 +60,9 @@ public class FakePlayer extends net.minecraftforge.common.util.FakePlayer {
         return owner.getPositionVector();
     }
 
-    @Override
-    public void setItemStackToSlot(EquipmentSlotType slotIn, ItemStack stack) {
-        super.setItemStackToSlot(slotIn, stack);
-    }
-
+    /**
+     * Apply the item attributes, this is things like mining speed, damage, health, etc.
+     */
     private void applyAttributes() {
         for (EquipmentSlotType equipmentslottype : EquipmentSlotType.values()) {
             ItemStack itemstack;

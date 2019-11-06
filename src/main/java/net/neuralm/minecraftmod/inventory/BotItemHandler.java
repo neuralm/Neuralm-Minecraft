@@ -8,6 +8,13 @@ import net.neuralm.minecraftmod.entities.BotEntity;
 
 public class BotItemHandler extends ItemStackHandler {
 
+    /***
+     * Inventory type is used to configure the size of the item handler.
+     *
+     * {@link InventoryType#MAIN} is the inventory you'd see when you open your inventory. The hotbar is also included
+     * {@link InventoryType#ARMOR} is the inventory where your armor is stored, a normal player would see these slots next to the player model in the inventory.
+     * {@link InventoryType#OFFHAND} is the inventory where the offhand is stored. This is a different inventory from the main inventory because this slot is always selected
+     */
     public enum InventoryType {
         MAIN(9 * 4),
         ARMOR(4),
@@ -24,9 +31,11 @@ public class BotItemHandler extends ItemStackHandler {
         }
     }
 
-    final BotEntity owner;
+    //The owner of this itemhandler
+    private final BotEntity owner;
 
-    final InventoryType inventoryType;
+    //What type this itemhandler is
+    private final InventoryType inventoryType;
 
     /**
      * Create the bot item handler for the given inventory type.
@@ -46,6 +55,7 @@ public class BotItemHandler extends ItemStackHandler {
             return;
         }
 
+        //Sync this inventory to the fakeplayer, what slot to use depends on the InventoryType
         switch (this.inventoryType) {
             case MAIN:
                 owner.getFakePlayer().inventory.setInventorySlotContents(slot, getStackInSlot(slot));
