@@ -34,7 +34,7 @@ public class BotEntity extends LivingEntity {
     private FakePlayer fakePlayer;
 
     //The current selected item
-    private int currentItem = 0;
+    public int selectedItem = 0;
 
     //Whether the bot has tried left clicking last tick.
     private boolean lastTickLeftClicked;
@@ -228,9 +228,10 @@ public class BotEntity extends LivingEntity {
     private void updatePose() {
         Pose pose = Pose.STANDING;
 
-        if (this.isSneaking()) {
-            pose = Pose.SNEAKING;
-        }
+//        if (this.isSneaking()) { TODO: Find replacement
+//            pose = Pose.SNEAKING;
+//        }
+
 
         this.setPose(pose);
     }
@@ -252,7 +253,7 @@ public class BotEntity extends LivingEntity {
     @Nonnull
     public ItemStack getItemStackFromSlot(@Nonnull EquipmentSlotType slotIn) {
         if (slotIn == EquipmentSlotType.MAINHAND) {
-            return this.mainInventory.getStackInSlot(currentItem);
+            return this.mainInventory.getStackInSlot(selectedItem);
         } else if (slotIn == EquipmentSlotType.OFFHAND) {
             return this.offHandInventory.getStackInSlot(0);
         } else if (slotIn.getSlotType() == EquipmentSlotType.Group.ARMOR) {
@@ -277,7 +278,7 @@ public class BotEntity extends LivingEntity {
 
         if (slotIn == EquipmentSlotType.MAINHAND) {
             this.playEquipSound(stack);
-            this.mainInventory.setStackInSlot(this.currentItem, stack);
+            this.mainInventory.setStackInSlot(this.selectedItem, stack);
         } else if (slotIn == EquipmentSlotType.OFFHAND) {
             this.playEquipSound(stack);
             this.offHandInventory.setStackInSlot(0, stack);
@@ -396,7 +397,7 @@ public class BotEntity extends LivingEntity {
         AxisAlignedBB seeDistanceBox = this.getBoundingBox().expand(raytraceStart.scale(reachDistance)).grow(1.0D, 1.0D, 1.0D);
 
         //Ray trace for entities.
-        EntityRayTraceResult rayTraceResult = ProjectileHelper.func_221269_a(world,this, eyePosition, raytraceEnd, seeDistanceBox, (entity) -> !entity.isSpectator() && entity.canBeCollidedWith(), maxDistanceSqr);
+        EntityRayTraceResult rayTraceResult = ProjectileHelper.rayTraceEntities(world,this, eyePosition, raytraceEnd, seeDistanceBox, (entity) -> !entity.isSpectator() && entity.canBeCollidedWith(), maxDistanceSqr);
 
         if (rayTraceResult != null) {
             Vec3d hitVec = rayTraceResult.getHitVec();
@@ -435,5 +436,10 @@ public class BotEntity extends LivingEntity {
         RayTraceContext ctx = new RayTraceContext(eyePosition, endPosition, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE, this);
 
         return this.world.rayTraceBlocks(ctx);
+    }
+
+    public void setMainInventory(int slot, ItemStack item, int selectedIndex) {
+        this.mainInventory.setStackInSlot(slot, item);
+        selectedItem = selectedIndex;
     }
 }

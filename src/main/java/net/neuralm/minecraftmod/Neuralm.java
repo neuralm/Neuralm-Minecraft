@@ -17,12 +17,13 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.ObjectHolder;
 import net.neuralm.client.NeuralmClient;
 import net.neuralm.minecraftmod.commands.ConnectCommand;
 import net.neuralm.minecraftmod.commands.LoginCommand;
 import net.neuralm.minecraftmod.commands.RegisterCommand;
 import net.neuralm.minecraftmod.entities.BotEntity;
-import net.neuralm.minecraftmod.entities.renderer.BotEntityRenderer;
+import net.neuralm.minecraftmod.entities.renderer.BotEntityRenderFactory;
 import net.neuralm.minecraftmod.networking.PacketHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,6 +32,9 @@ import org.apache.logging.log4j.Logger;
 public class Neuralm {
 
     public static final String MODID = "neuralm";
+
+    @ObjectHolder(MODID+":bot")
+    public static final EntityType<BotEntity> BOT_ENTITY_TYPE = null;
 
     public static Neuralm instance;
     public NeuralmClient client;
@@ -63,7 +67,7 @@ public class Neuralm {
      * @param event Event fired when the client is setup
      */
     private void registerEntityRender(FMLClientSetupEvent event) {
-        RenderingRegistry.registerEntityRenderingHandler(BotEntity.class, BotEntityRenderer::new);
+        RenderingRegistry.registerEntityRenderingHandler(BOT_ENTITY_TYPE, new BotEntityRenderFactory());
     }
 
     /***

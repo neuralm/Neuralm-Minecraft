@@ -21,7 +21,7 @@ public class BotEntityRenderer extends LivingRenderer<BotEntity, BipedModel<BotE
 
     @Nullable
     @Override
-    protected ResourceLocation getEntityTexture(@Nonnull BotEntity entity) {
+    public ResourceLocation getEntityTexture(@Nonnull BotEntity entity) {
         return new ResourceLocation(MODID, "textures/entity/bot.png");
     }
 }
