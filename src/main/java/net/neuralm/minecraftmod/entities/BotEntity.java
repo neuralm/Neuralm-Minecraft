@@ -1,5 +1,6 @@
 package net.neuralm.minecraftmod.entities;
 
+import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.SoundType;
@@ -13,12 +14,14 @@ import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.*;
 import net.minecraft.util.math.*;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.neuralm.minecraftmod.inventory.BotItemHandler;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Hashtable;
 import java.util.List;
 
 public class BotEntity extends LivingEntity {
@@ -29,6 +32,15 @@ public class BotEntity extends LivingEntity {
     private final BotItemHandler armorInventory = new BotItemHandler(this, BotItemHandler.InventoryType.ARMOR);
     //The offhand inventory is just a single lonely slot
     private final BotItemHandler offHandInventory = new BotItemHandler(this, BotItemHandler.InventoryType.OFFHAND);
+
+    //Has this bot loaded its skin yet?
+    public boolean playerTexturesLoaded;
+    //Is this bot's texture loading?
+    public boolean isTextureLoading;
+    //The textures this bot has
+    public Hashtable<MinecraftProfileTexture.Type, ResourceLocation> playerTextures = new Hashtable<>();
+    //The skin's type (slim, or default)
+    public String skinType;
 
     //To interact with the world
     private FakePlayer fakePlayer;
@@ -46,6 +58,7 @@ public class BotEntity extends LivingEntity {
 
     public BotEntity(EntityType<? extends LivingEntity> type, World world) {
         super(type, world);
+        this.setCustomName(new StringTextComponent("suppergerrie2"));
     }
 
     @Override
