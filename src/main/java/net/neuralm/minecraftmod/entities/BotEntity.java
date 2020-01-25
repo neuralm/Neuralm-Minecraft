@@ -58,7 +58,13 @@ public class BotEntity extends LivingEntity {
 
     public BotEntity(EntityType<? extends LivingEntity> type, World world) {
         super(type, world);
-        this.setCustomName(new StringTextComponent("suppergerrie2"));
+
+        String[] names = new String[] {
+                "suppergerrie2", "MechanistPlays", "Glovali"};
+
+        String name = names[world.rand.nextInt(names.length)];
+
+        this.setCustomName(new StringTextComponent(name));
     }
 
     @Override
