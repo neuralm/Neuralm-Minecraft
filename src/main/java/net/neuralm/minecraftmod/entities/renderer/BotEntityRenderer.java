@@ -10,6 +10,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.IRenderTypeBuffer;
 import net.minecraft.client.renderer.entity.EntityRendererManager;
 import net.minecraft.client.renderer.entity.LivingRenderer;
+import net.minecraft.client.renderer.entity.layers.*;
+import net.minecraft.client.renderer.entity.model.BipedModel;
 import net.minecraft.client.renderer.entity.model.PlayerModel;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.entity.Entity;
@@ -19,9 +21,9 @@ import net.minecraft.util.ResourceLocation;
 import net.neuralm.minecraftmod.entities.BotEntity;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.File;
 import java.net.Proxy;
+import java.util.Objects;
 import java.util.UUID;
 
 public class BotEntityRenderer extends LivingRenderer<BotEntity, PlayerModel<BotEntity>> {
@@ -29,24 +31,35 @@ public class BotEntityRenderer extends LivingRenderer<BotEntity, PlayerModel<Bot
     private static PlayerProfileCache playerprofilecache;
     private static MinecraftSessionService service;
 
-    private PlayerModel modelNormal = new PlayerModel<BotEntity>(0.0f, false);
-    private PlayerModel modelSlim = new PlayerModel<BotEntity>(0.0f, true);
+    private PlayerModel<BotEntity> modelNormal = new PlayerModel<>(0.0f, false);
+    private PlayerModel<BotEntity> modelSlim = new PlayerModel<>(0.0f, true);
 
-    public BotEntityRenderer(EntityRendererManager rendererManager) {
+    BotEntityRenderer(EntityRendererManager rendererManager) {
         super(rendererManager, new PlayerModel<>(0, false), 0.5f);
+        this.addLayer(new BipedArmorLayer<>(this, new BipedModel<>(0.5F), new BipedModel<>(1.0F)));
+        this.addLayer(new HeldItemLayer<>(this));
+        this.addLayer(new ArrowLayer<>(this));
+        this.addLayer(new HeadLayer<>(this));
+        this.addLayer(new ElytraLayer<>(this));
+        this.addLayer(new SpinAttackEffectLayer<>(this));
+        this.addLayer(new BeeStingerLayer<>(this));
 
         if (service == null || playerprofilecache == null) {
-            YggdrasilAuthenticationService yggdrasilauthenticationservice = new YggdrasilAuthenticationService(Proxy.NO_PROXY, UUID.randomUUID().toString());
+            YggdrasilAuthenticationService yggdrasilauthenticationservice = new YggdrasilAuthenticationService(
+                    Proxy.NO_PROXY, UUID.randomUUID()
+                                        .toString());
             service = yggdrasilauthenticationservice.createMinecraftSessionService();
 
             GameProfileRepository gameprofilerepository = yggdrasilauthenticationservice.createProfileRepository();
-            playerprofilecache = new PlayerProfileCache(gameprofilerepository, new File(Minecraft.getInstance().gameDir, MinecraftServer.USER_CACHE_FILE.getName()));
+            playerprofilecache = new PlayerProfileCache(gameprofilerepository, new File(Minecraft.getInstance().gameDir,
+                                                                                        MinecraftServer.USER_CACHE_FILE.getName()));
         }
     }
 
     @Override
-    public void render(BotEntity bot, float entityYaw, float partialTicks, MatrixStack matrixStackIn, IRenderTypeBuffer bufferIn, int packedLightIn) {
-        if(bot.playerTexturesLoaded && bot.skinType.equals("slim")) {
+    public void render(BotEntity bot, float entityYaw, float partialTicks, @Nonnull MatrixStack matrixStackIn,
+                       @Nonnull IRenderTypeBuffer bufferIn, int packedLightIn) {
+        if (bot.playerTexturesLoaded && bot.skinType != null && bot.skinType.equals("slim")) {
             this.entityModel = modelSlim;
         } else {
             this.entityModel = modelNormal;
@@ -54,47 +67,24 @@ public class BotEntityRenderer extends LivingRenderer<BotEntity, PlayerModel<Bot
         super.render(bot, entityYaw, partialTicks, matrixStackIn, bufferIn, packedLightIn);
     }
 
-    //    @Override
-//    public void render(BotEntity bot, float entityYaw, float partialTicks, MatrixStack matrixStackIn, IRenderTypeBuffer bufferIn, int packedLightIn) {
-//        modelNormal.isChild = modelSlim.isChild = bot.isChild();
-//
-//        boolean visible = this.isVisible(bot, false);
-//        boolean visible2 = !visible && !bot.isInvisibleToPlayer(Minecraft.getInstance().player);
-//
-//        if (visible || visible2) {
-//            Model model;
-//
-//            boolean slim;
-//            if (bot.skinType == null) {
-//                slim = DefaultPlayerSkin.getSkinType(bot.getUniqueID()).equals("slim");
-//            } else {
-//                slim = bot.skinType.equals("slim");
-//            }
-//
-//            if (slim) {
-//                model = modelSlim;
-//            } else {
-//                model = modelNormal;
-//            }
-//
-//        }
-//    }
-
-    @Nullable
     @Override
+    @Nonnull
     public ResourceLocation getEntityTexture(@Nonnull BotEntity entity) {
         if (!entity.playerTexturesLoaded && !entity.isTextureLoading) {
             loadPlayerTextures(entity);
         }
 
-        return entity.playerTexturesLoaded ? entity.playerTextures.get(MinecraftProfileTexture.Type.SKIN) : DefaultPlayerSkin.getDefaultSkinLegacy();
+        return entity.playerTexturesLoaded ? entity.playerTextures.get(
+                MinecraftProfileTexture.Type.SKIN) : DefaultPlayerSkin.getDefaultSkinLegacy();
     }
 
     private void loadPlayerTextures(BotEntity bot) {
 
         if (!bot.isTextureLoading) {
             bot.isTextureLoading = true;
-            new Thread(new SkinLoader(bot.getName().getFormattedText(), bot.getUniqueID(), bot.getEntityId(), playerprofilecache, service), "SkinLoader" + bot.getName()).start();
+            new Thread(new SkinLoader(bot.getName()
+                                         .getFormattedText(), bot.getUniqueID(), bot.getEntityId(), playerprofilecache,
+                                      service), "SkinLoader" + bot.getName()).start();
         }
     }
 }
@@ -107,12 +97,18 @@ class SkinLoader implements Runnable {
     private UUID uuid;
     private int entityID;
 
-    SkinLoader(String name, UUID uniqueID, int id, PlayerProfileCache playerProfileCache, MinecraftSessionService service) {
+    SkinLoader(String name, UUID uniqueID, int id, PlayerProfileCache playerProfileCache,
+               MinecraftSessionService service) {
         this.name = name;
         this.uuid = uniqueID;
         this.playerprofilecache = playerProfileCache;
         this.service = service;
         this.entityID = id;
+    }
+
+    private synchronized static GameProfile getGameProfileForUsername(PlayerProfileCache playerprofilecache,
+                                                                      String name) {
+        return playerprofilecache.getGameProfileForUsername(name);
     }
 
     @Override
@@ -123,42 +119,43 @@ class SkinLoader implements Runnable {
             profile = new GameProfile(uuid, name);
         }
 
-        if (!profile.getProperties().containsKey("textures")) {
+        if (!profile.getProperties()
+                    .containsKey("textures")) {
             service.fillProfileProperties(profile, true);
         }
 
         GameProfile finalProfile = profile;
-        Minecraft.getInstance().enqueue(() -> {
-            Entity e = Minecraft.getInstance().world.getEntityByID(entityID);
-            if (e instanceof BotEntity) {
-                BotEntity bot = (BotEntity) e;
+        Minecraft.getInstance()
+                 .enqueue(() -> {
+                     Entity e = Objects.requireNonNull(Minecraft.getInstance().world)
+                                       .getEntityByID(entityID);
+                     if (e instanceof BotEntity) {
+                         BotEntity bot = (BotEntity) e;
 
-                Minecraft.getInstance().getSkinManager().loadProfileTextures(finalProfile, (typeIn, location, profileTexture) -> {
-                    switch (typeIn) {
-                        case SKIN:
-                            bot.playerTextures.put(MinecraftProfileTexture.Type.SKIN, location);
-                            bot.skinType = profileTexture.getMetadata("model");
+                         Minecraft.getInstance()
+                                  .getSkinManager()
+                                  .loadProfileTextures(finalProfile, (typeIn, location, profileTexture) -> {
+                                      switch (typeIn) {
+                                          case SKIN:
+                                              bot.playerTextures.put(MinecraftProfileTexture.Type.SKIN, location);
+                                              bot.skinType = profileTexture.getMetadata("model");
 
-                            if (bot.skinType == null) {
-                                bot.skinType = "default";
-                            }
+                                              if (bot.skinType == null) {
+                                                  bot.skinType = "default";
+                                              }
 
-                            break;
-                        case CAPE:
-                            bot.playerTextures.put(MinecraftProfileTexture.Type.CAPE, location);
-                            break;
-                        case ELYTRA:
-                            bot.playerTextures.put(MinecraftProfileTexture.Type.ELYTRA, location);
-                    }
+                                              break;
+                                          case CAPE:
+                                              bot.playerTextures.put(MinecraftProfileTexture.Type.CAPE, location);
+                                              break;
+                                          case ELYTRA:
+                                              bot.playerTextures.put(MinecraftProfileTexture.Type.ELYTRA, location);
+                                      }
 
-                    bot.playerTexturesLoaded = true;
-                    bot.isTextureLoading = false;
-                }, true);
-            }
-        });
-    }
-
-    private synchronized static GameProfile getGameProfileForUsername(PlayerProfileCache playerprofilecache, String name) {
-        return playerprofilecache.getGameProfileForUsername(name);
+                                      bot.playerTexturesLoaded = true;
+                                      bot.isTextureLoading = false;
+                                  }, true);
+                     }
+                 });
     }
 }

@@ -4,6 +4,7 @@ import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.SoundType;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.Pose;
@@ -12,19 +13,29 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileHelper;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.IPacket;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.*;
 import net.minecraft.util.math.*;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData;
+import net.minecraftforge.fml.network.NetworkHooks;
+import net.neuralm.client.neat.Organism;
+import net.neuralm.minecraftmod.Neuralm;
 import net.neuralm.minecraftmod.inventory.BotItemHandler;
+import net.neuralm.minecraftmod.neuralmhelpers.OrganismByteHelper;
+import net.neuralm.minecraftmod.screen.network.NetworkScreen;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Hashtable;
 import java.util.List;
 
-public class BotEntity extends LivingEntity {
+import static net.neuralm.minecraftmod.Neuralm.TEST_ORGANISM;
+
+public class BotEntity extends LivingEntity implements IEntityAdditionalSpawnData {
 
     //Bot has 3 separate inventories, the main inventory which you can see as the hotbar and the 9*3 grid
     private final BotItemHandler mainInventory = new BotItemHandler(this, BotItemHandler.InventoryType.MAIN);
@@ -56,15 +67,40 @@ public class BotEntity extends LivingEntity {
     private BlockPos lastMinePos = BlockPos.ZERO;
     private int blockSoundTimer;
 
-    public BotEntity(EntityType<? extends LivingEntity> type, World world) {
+    private Organism organism;
+
+    public BotEntity(EntityType<? extends BotEntity> type, World world) {
         super(type, world);
 
-        String[] names = new String[] {
-                "suppergerrie2", "MechanistPlays", "Glovali"};
+        String[] names = new String[]{"suppergerrie2", "MechanistPlays", "Epicpandabearxz"};
 
         String name = names[world.rand.nextInt(names.length)];
 
         this.setCustomName(new StringTextComponent(name));
+        if (!world.isRemote) organism = TEST_ORGANISM;
+    }
+
+    public BotEntity(World world, Organism organism) {
+        this(Neuralm.BOT_ENTITY_TYPE.get(), world);
+        this.organism = organism;
+
+        this.setCustomName(new StringTextComponent(organism.getName()));
+    }
+
+    @Override
+    public void writeSpawnData(PacketBuffer buffer) {
+        OrganismByteHelper.writeOrganism(buffer, organism);
+    }
+
+    @Override
+    public void readSpawnData(PacketBuffer additionalData) {
+        organism = OrganismByteHelper.readOrganism(additionalData);
+    }
+
+    @Override
+    @Nonnull
+    public IPacket<?> createSpawnPacket() {
+        return NetworkHooks.getEntitySpawningPacket(this);
     }
 
     @Override
@@ -100,6 +136,20 @@ public class BotEntity extends LivingEntity {
 
         this.rotationYawHead = this.rotationYaw;
         leftClick(rayTrace());
+    }
+
+    @Override
+    @Nonnull
+    public ActionResultType applyPlayerInteraction(PlayerEntity player, Vec3d vec, Hand hand) {
+//        if (organism == null) return ActionResultType.PASS;
+
+        if (world.isRemote) {
+            //TODO: Move this out of here so it doesn't crash the server
+            Minecraft.getInstance()
+                     .displayGuiScreen(new NetworkScreen(organism));
+        }
+
+        return ActionResultType.SUCCESS;
     }
 
     /**
@@ -247,9 +297,9 @@ public class BotEntity extends LivingEntity {
     private void updatePose() {
         Pose pose = Pose.STANDING;
 
-//        if (this.isSneaking()) { TODO: Find replacement
-//            pose = Pose.SNEAKING;
-//        }
+        if (this.isShiftKeyDown()) {
+            pose = Pose.CROUCHING;
+        }
 
 
         this.setPose(pose);
@@ -286,8 +336,8 @@ public class BotEntity extends LivingEntity {
      * Sets the given {@link ItemStack} to the slot corresponding to the given {@link EquipmentSlotType}.
      *
      * This method will sync the item to the fake player if on the server side.
-     * @param slotIn
-     * @param stack
+     * @param slotIn Slot to set the item stack to
+     * @param stack The itemstack to set
      */
     @Override
     public void setItemStackToSlot(@Nonnull EquipmentSlotType slotIn, @Nonnull ItemStack stack) {
@@ -334,7 +384,7 @@ public class BotEntity extends LivingEntity {
     }
 
     @Override
-    public void onDeath(DamageSource cause) {
+    public void onDeath(@Nonnull DamageSource cause) {
         super.onDeath(cause);
 
         //Reset mining so there isnt a crack in a block forever
@@ -393,7 +443,7 @@ public class BotEntity extends LivingEntity {
      * Ray trace for entities and blocks
      * @return A {@link RayTraceResult} with what was hit.
      */
-    public RayTraceResult rayTrace() {
+    private RayTraceResult rayTrace() {
 
         //Ray tracec for a block first
         double reachDistance = this.getBlockReachDistance();
@@ -461,4 +511,5 @@ public class BotEntity extends LivingEntity {
         this.mainInventory.setStackInSlot(slot, item);
         selectedItem = selectedIndex;
     }
+
 }

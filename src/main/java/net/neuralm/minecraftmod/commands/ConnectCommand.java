@@ -13,8 +13,8 @@ import net.minecraft.util.text.TranslationTextComponent;
 import net.neuralm.client.NeuralmClient;
 import net.neuralm.client.messages.serializer.JsonSerializer;
 import net.neuralm.minecraftmod.Neuralm;
-import net.neuralm.minecraftmod.SingleUseListener;
 import net.neuralm.minecraftmod.commands.LoginCommand.StringArgument;
+import net.neuralm.minecraftmod.neuralmhelpers.SingleUseListener;
 
 import java.io.IOException;
 
@@ -65,7 +65,9 @@ public class ConnectCommand {
 
         Neuralm.instance.client = new NeuralmClient(ip, port, new JsonSerializer(), false, -1);
 
+        //noinspection CodeBlock2Expr
         new SingleUseListener(evt -> {
+            //noinspection CodeBlock2Expr
             context.getSource().getServer().runAsync(() -> {
                 context.getSource().sendFeedback(new TranslationTextComponent("neuralm.connected", ip, port).setStyle(new Style().setColor(TextFormatting.GREEN)), true);
             });
