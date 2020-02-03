@@ -13,7 +13,7 @@ import net.minecraft.util.text.TranslationTextComponent;
 import net.neuralm.client.messages.requests.AuthenticateRequest;
 import net.neuralm.client.messages.responses.AuthenticateResponse;
 import net.neuralm.minecraftmod.Neuralm;
-import net.neuralm.minecraftmod.SingleUseListener;
+import net.neuralm.minecraftmod.neuralmhelpers.SingleUseListener;
 
 public class LoginCommand {
 

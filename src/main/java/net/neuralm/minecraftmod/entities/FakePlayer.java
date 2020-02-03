@@ -34,11 +34,12 @@ public class FakePlayer extends net.minecraftforge.common.util.FakePlayer {
         return owner.getPosition();
     }
 
-    @Override
-    @Nonnull
-    public Vec3d getEyePosition(float partialTicks) {
-        return owner.getEyePosition(partialTicks);
-    }
+//    TODO: Find replacement
+//    @Override
+//    @Nonnull
+//    public Vec3d getEyePosition(float partialTicks) {
+//        return owner.getEyePosition(partialTicks);
+//    }
 
     @Override
     public void setPosition(double x, double y, double z) {

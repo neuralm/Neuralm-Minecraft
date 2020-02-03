@@ -10,7 +10,7 @@ import net.minecraft.util.text.TranslationTextComponent;
 import net.neuralm.client.messages.requests.RegisterRequest;
 import net.neuralm.client.messages.responses.Response;
 import net.neuralm.minecraftmod.Neuralm;
-import net.neuralm.minecraftmod.SingleUseListener;
+import net.neuralm.minecraftmod.neuralmhelpers.SingleUseListener;
 
 public class RegisterCommand {
 

@@ -18,5 +18,11 @@ public class PacketHandler {
                         serverAcceptedVersions(s -> Objects.equals(s, "1")).
                         networkProtocolVersion(() -> "1").
                         simpleChannel();
+
+        channel.messageBuilder(SyncInventory.class, 0)
+                .encoder(SyncInventory::encode)
+                .decoder(SyncInventory::decode)
+                .consumer(SyncInventory::handle)
+                .add();
     }
 }

@@ -3,8 +3,11 @@ package net.neuralm.minecraftmod.inventory;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;
+import net.minecraftforge.fml.network.PacketDistributor;
 import net.minecraftforge.items.ItemStackHandler;
 import net.neuralm.minecraftmod.entities.BotEntity;
+import net.neuralm.minecraftmod.networking.PacketHandler;
+import net.neuralm.minecraftmod.networking.SyncInventory;
 
 public class BotItemHandler extends ItemStackHandler {
 
@@ -54,6 +57,8 @@ public class BotItemHandler extends ItemStackHandler {
         if (owner.getFakePlayer() == null) {
             return;
         }
+
+        if(!owner.world.isRemote) PacketHandler.channel.send(PacketDistributor.TRACKING_ENTITY.with(()->owner), new SyncInventory(slot, owner.selectedItem, getStackInSlot(slot), owner.getEntityId()));
 
         //Sync this inventory to the fakeplayer, what slot to use depends on the InventoryType
         switch (this.inventoryType) {

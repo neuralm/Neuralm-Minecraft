@@ -1,4 +1,6 @@
-package net.neuralm.minecraftmod;
+package net.neuralm.minecraftmod.neuralmhelpers;
+
+import net.neuralm.minecraftmod.Neuralm;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
