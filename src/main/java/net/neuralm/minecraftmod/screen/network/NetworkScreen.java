@@ -60,7 +60,7 @@ public class NetworkScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int mouseButton, double dragX, double dragY) {
-        //When the player drags the mouse update teh x and y position. This is based on the zoom level to make sure the mouse always stays in the same position relative to the network
+        //When the player drags the mouse update the x and y position. This is based on the zoom level to make sure the mouse always stays in the same position relative to the network
         x += dragX / scale;
         y += dragY / scale;
 
