@@ -97,6 +97,7 @@ public class NetworkScreen extends Screen {
 
         //Reset color
         RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.enableBlend();
 
         //TODO: Fix zooming and possibly switch to using DrawHelper.drawRectangle
 
